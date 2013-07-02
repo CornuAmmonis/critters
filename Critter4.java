@@ -165,7 +165,6 @@ class Spinner {
     }
 
     public float[] averager(float[] velocity, float[] prevVelocity, float ratio) {
-        float range = 5000f;
         float[] newVelocity = new float[2];
         newVelocity[0] = velocity[0]*ratio + prevVelocity[0]*(1-ratio);
         newVelocity[1] = velocity[1]*ratio + prevVelocity[1]*(1-ratio);
@@ -213,12 +212,13 @@ class Spinner {
   }
   
     public void mate(Spinner self, Spinner target) throws Exception {
+        float contribution = 0.5f;
         int newId = newSp.size();
-        if (self.getEnergy() > 0.5f && target.getEnergy() > 0.5f) {
-            Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0f);
-            Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
-            self.setEnergy(self.getEnergy() - 0.5f);
-            target.setEnergy(target.getEnergy() - 0.5f);
+        if (self.getEnergy() > contribution && target.getEnergy() > contribution) {
+            Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0.05f);
+            Spinner newSpinner = new Spinner(newId, self.getType(), 2 * contribution);
+            self.setEnergy(self.getEnergy() - contribution);
+            target.setEnergy(target.getEnergy() - contribution);
             newSpinner.setPosition(self.getPosition());
             newSp.add(newSpinner);
             print("+");
@@ -226,7 +226,10 @@ class Spinner {
       }
   
   public void attack(Spinner self, Spinner target) {
-    
+    if (!newSp.contains(target)) {
+        return;    //crappy way of handling concurrency issues
+    }
+
     float rdm = random(1f);
     float ratio = self.getEnergy() / (target.getEnergy() + self.getEnergy());
     if (rdm < ratio) {

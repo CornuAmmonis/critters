@@ -86,14 +86,23 @@ class Neuron {
     }
 
     public Neuron clone(Network net) {
-        Neuron clone = new Neuron(getNeuronParams());
+        Neuron clone = new Neuron(getNeuronParams().clone());
         List<Connection> inputs = getInputs();
-        List<Connection> newConnections = new ArrayList<Connection>(inputs);
+        List<Connection> newConnections = new ArrayList<Connection>();
         for (Connection connection : inputs) {
             newConnections.add(connection.clone(net));
         }
         clone.setInputs(newConnections);
         return clone;
+    }
+
+    public Neuron clone(Network net, float mutation) {
+        Neuron clone = clone(net);
+        NeuronParams newParams = getNeuronParams().clone();
+        newParams.mutate(mutation);
+        Neuron mutatedClone = new Neuron(newParams);
+        mutatedClone.setInputs(clone.getInputs());
+        return mutatedClone;
     }
 
 }

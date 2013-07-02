@@ -25,9 +25,9 @@ class Network {
         }
         for (int i = 0; i < neurons1.size(); i++) {
             if (Math.random() < 0.5f) {
-                newNeurons.add(neurons1.get(i).clone(this));
+                newNeurons.add(neurons1.get(i).clone(this, mutation));
             } else {
-                newNeurons.add(neurons2.get(i).clone(this));
+                newNeurons.add(neurons2.get(i).clone(this, mutation));
             }
         }
         neurons = newNeurons;
