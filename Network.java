@@ -3,7 +3,7 @@ import java.util.List;
 
 class Network {
     float[] inputs;
-    int inputNs = 5;
+    int inputNs = 10;
     int hiddenNs = 10;
     int outputNs = 4;
 
@@ -35,11 +35,16 @@ class Network {
 
     public Network() {
         for (int i = 0; i < inputNs; i++) {
-            Neuron n = createRandomNeuron(inputNs);
+            Neuron n = createRandomNeuron(inputNs + outputNs);
 
             List<Connection> connections = new ArrayList<Connection>();
             for (int j = 0; j < inputNs; j++) {
                 connections.add(new ExternalConnection(j, this, scale / inputNs));
+            }
+
+            //testing feedback loop
+            for (int j = inputNs + hiddenNs; j < inputNs + hiddenNs + outputNs; j++) {
+                connections.add(new InternalConnection(j, this, scale / outputNs));
             }
             n.setInputs(connections);
 

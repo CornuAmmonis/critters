@@ -23,9 +23,13 @@ public class Critter4 extends PApplet {
 
 ArrayList<Spinner> sp;
 ArrayList<Spinner> newSp;
-int agents = 500;
+int agents = 100;
 
 float vScale = 0.2f; //velocity scale
+
+float initialE = 2f;
+
+public final int inputN = 10;
 
 public void setup() {
   size(1024, 768, OPENGL);
@@ -33,9 +37,9 @@ public void setup() {
   sp = new ArrayList<Spinner>();
   for (int i = 0; i < agents; i++) {
     if (i < agents/2) {
-      sp.add(i, new Spinner(i,0,1f));
+      sp.add(i, new Spinner(i,0,initialE));
     } else {
-      sp.add(i, new Spinner(i,1,1f));
+      sp.add(i, new Spinner(i,1,initialE));
     }  
   }
 }
@@ -43,6 +47,7 @@ public void setup() {
 public void draw() {
     newSp = new ArrayList(sp);
     background(255);
+    float totalEnergy = 0;
     for (Spinner spinner : sp) {
         try{
             spinner.update();
@@ -50,8 +55,10 @@ public void draw() {
             ex.printStackTrace();
             System.exit(-1);
         }
+        totalEnergy += spinner.getEnergy();
         spinner.draw();
     }
+    System.out.println(totalEnergy);
     sp = newSp;
 }
 
@@ -101,6 +108,7 @@ class Spinner {
     int type;
     float energy;
     Network net;
+    long birthday;
 
     float[] position = new float[2];
     float[] velocity = new float[2];
@@ -114,6 +122,7 @@ class Spinner {
         position[0] = random((float)width);
         position[1] = random((float)height);
         this.net = new Network();
+        this.birthday = System.currentTimeMillis();
     }
 
     Spinner(int id, int type, float energy, Network net) {
@@ -125,7 +134,7 @@ class Spinner {
         position[0] = random((float)width);
         position[1] = random((float)height);
         this.net = net;
-
+        this.birthday = System.currentTimeMillis();
     }
   
     public int getId() {
@@ -134,6 +143,10 @@ class Spinner {
 
     public int getType() {
         return type;
+    }
+
+    public long getAge() {
+        return System.currentTimeMillis() - this.birthday;
     }
 
     public float[] getPosition() {
@@ -196,7 +209,7 @@ class Spinner {
   }
   
   public void setNetInput() {
-    float[] input = new float[5];
+    float[] input = new float[inputN];
     Spinner closest = getClosest(this);
     float[] distanceVector = getDistanceVector(closest.getPosition(), this.getPosition());
     float[] velocity = getVelocity();
@@ -207,9 +220,17 @@ class Spinner {
     input[2] = velocity[0];
     input[3] = velocity[1];
     input[4] = type + 0f;
+    input[5] = closest.getRadius();
+    input[7] = activation(this.getAge(), 1f, 1E-5f, 3f);
+    input[8] = activation(closest.getAge(), 1f, 1E-5f, 3f);
+    input[9] = this.getEnergy();
 
     net.setInputs(input);
   }
+
+    public float activation(float x, float scaleRange, float scaleDomain, float shift) {
+        return scaleRange * ((float) Math.tanh((x + shift) * scaleDomain) + 1f);
+    }
   
     public void mate(Spinner self, Spinner target) throws Exception {
         float contribution = self.getEnergy() / (self.getEnergy() + target.getEnergy());
@@ -218,7 +239,7 @@ class Spinner {
             Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0.05f);
             Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
             self.setEnergy(self.getEnergy() - contribution);
-            target.setEnergy(target.getEnergy() + contribution - 1);
+            target.setEnergy(target.getEnergy() + contribution - 1f);
             newSpinner.setPosition(self.getPosition());
             newSp.add(newSpinner);
             //print("+");
@@ -235,11 +256,11 @@ class Spinner {
     if (rdm < ratio) {
       self.setEnergy(self.getEnergy() + target.getEnergy());
       newSp.remove(target);
-      print("<");
+      //print("<");
     } else {
       target.setEnergy(target.getEnergy() + self.getEnergy());
       newSp.remove(self);
-      print(">");
+      //print(">");
     }   
   }
 
