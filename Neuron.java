@@ -1,8 +1,9 @@
+import java.util.ArrayList;
 import java.util.List;
 
 class Neuron {
 
-    final float scale = 10f;
+    final float scale = 1f;
 
     final float fThresh = 30.0f;
 
@@ -82,6 +83,17 @@ class Neuron {
 
     public float getV() {
         return v;
+    }
+
+    public Neuron clone(Network net) {
+        Neuron clone = new Neuron(getNeuronParams());
+        List<Connection> inputs = getInputs();
+        List<Connection> newConnections = new ArrayList<Connection>(inputs);
+        for (Connection connection : inputs) {
+            newConnections.add(connection.clone(net));
+        }
+        clone.setInputs(newConnections);
+        return clone;
     }
 
 }

@@ -23,7 +23,7 @@ public class Critter4 extends PApplet {
 
 ArrayList<Spinner> sp;
 ArrayList<Spinner> newSp;
-int agents = 200;
+int agents = 500;
 
 float vScale = 0.2f; //velocity scale
 
@@ -41,13 +41,18 @@ public void setup() {
 }
 
 public void draw() {
-  newSp = new ArrayList(sp);
-  background(255);
-  for (Spinner spinner : sp) {
-    spinner.update();
-    spinner.draw();
-  }
-  sp = newSp;
+    newSp = new ArrayList(sp);
+    background(255);
+    for (Spinner spinner : sp) {
+        try{
+            spinner.update();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(-1);
+        }
+        spinner.draw();
+    }
+    sp = newSp;
 }
 
 public Spinner getClosest(Spinner a) {
@@ -70,7 +75,7 @@ public float getDistance(float[] a, float[] b) {
 }
 
 public boolean interactDistance(float distance) {
-  return distance < 10f;
+  return distance < 20f;
 }
 
 public float[] getDistanceVector(float[] a, float[] b) {
@@ -92,53 +97,72 @@ public float[] getUnitDistanceVector(float[] a, float[] b) {
 
 
 class Spinner {
-  int id;
-  int type;
-  float energy;
-  Network net;
-  
-  float[] position = new float[2];
-  float[] velocity = new float[2]; 
-  
-  Spinner(int id, int type, float energy) {
-    this.type = type;
-    this.id = id;
-    this.energy = energy;
-    velocity[0] = random(1f) - 0.5f;
-    velocity[1] = random(1f) - 0.5f; 
-    position[0] = random((float)width);
-    position[1] = random((float)height); 
-    net = new Network();
-    
-  }
-  
-  public int getId() {
-    return id;
-  }
-  
-  public int getType() {
-    return type;  
-  }
+    int id;
+    int type;
+    float energy;
+    Network net;
 
-  public float[] getPosition() {
-    return position;
-  }
+    float[] position = new float[2];
+    float[] velocity = new float[2];
   
-  public void setPosition(float[] position) {
-    this.position = position;  
-  }
+    Spinner(int id, int type, float energy) {
+        this.type = type;
+        this.id = id;
+        this.energy = energy;
+        velocity[0] = random(1f) - 0.5f;
+        velocity[1] = random(1f) - 0.5f;
+        position[0] = random((float)width);
+        position[1] = random((float)height);
+        this.net = new Network();
+    }
+
+    Spinner(int id, int type, float energy, Network net) {
+        this.type = type;
+        this.id = id;
+        this.energy = energy;
+        velocity[0] = random(1f) - 0.5f;
+        velocity[1] = random(1f) - 0.5f;
+        position[0] = random((float)width);
+        position[1] = random((float)height);
+        this.net = net;
+
+    }
   
-  public float[] getVelocity() {
-    return velocity;  
-  }
+    public int getId() {
+        return id;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public float[] getPosition() {
+        return position;
+    }
+
+    public void setPosition(float[] position) {
+        this.position = position;
+    }
+
+    public float[] getVelocity() {
+        return velocity;
+    }
+
+    public float getEnergy() {
+        return energy;
+    }
   
-  public float getEnergy() {
-    return energy;
-  }
-  
-  public void setEnergy(float energy) {
-    this.energy = energy;
-  }
+    public void setEnergy(float energy) {
+        this.energy = energy;
+    }
+
+    public Network getNetwork() {
+        return net;
+    }
+
+    public void setNetwork(Network net) {
+        this.net = net;
+    }
 
     public float[] averager(float[] velocity, float[] prevVelocity, float ratio) {
         float range = 5000f;
@@ -148,7 +172,7 @@ class Spinner {
         return newVelocity;
     }
   
-  public void update() {
+  public void update() throws Exception {
       setNetInput();
       net.update();
       float rdm = random(1f);
@@ -188,17 +212,18 @@ class Spinner {
     net.setInputs(input);
   }
   
-  public void mate(Spinner self, Spinner target) {
-    int newId = newSp.size();
-    if (self.getEnergy() > 0.5f && target.getEnergy() > 0.5f) {
-      Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
-      self.setEnergy(self.getEnergy() - 0.5f);
-      target.setEnergy(target.getEnergy() - 0.5f);
-      newSpinner.setPosition(self.getPosition());
-      newSp.add(newSpinner);
-      print("+");
-    }    
-  }
+    public void mate(Spinner self, Spinner target) throws Exception {
+        int newId = newSp.size();
+        if (self.getEnergy() > 0.5f && target.getEnergy() > 0.5f) {
+            Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0f);
+            Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
+            self.setEnergy(self.getEnergy() - 0.5f);
+            target.setEnergy(target.getEnergy() - 0.5f);
+            newSpinner.setPosition(self.getPosition());
+            newSp.add(newSpinner);
+            print("+");
+        }
+      }
   
   public void attack(Spinner self, Spinner target) {
     

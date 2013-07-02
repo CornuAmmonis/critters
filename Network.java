@@ -16,6 +16,23 @@ class Network {
         this.neurons = neurons;
     }
 
+    public Network(Network network1, Network network2, float mutation) throws Exception {
+        List<Neuron> neurons1 = network1.getNeurons();
+        List<Neuron> neurons2 = network2.getNeurons();
+        List<Neuron> newNeurons = new ArrayList<Neuron>();
+        if (neurons1.size() != neurons2.size()) {
+            throw new Exception("Neuron count must be the same between networks.");
+        }
+        for (int i = 0; i < neurons1.size(); i++) {
+            if (Math.random() < 0.5f) {
+                newNeurons.add(neurons1.get(i).clone(this));
+            } else {
+                newNeurons.add(neurons2.get(i).clone(this));
+            }
+        }
+        neurons = newNeurons;
+    }
+
     public Network() {
         for (int i = 0; i < inputNs; i++) {
             Neuron n = createRandomNeuron(inputNs);
@@ -33,7 +50,7 @@ class Network {
 
             List<Connection> connections = new ArrayList<Connection>();
             for (int j = 0; j < inputNs; j++) {
-                connections.add(new InternalConnection(neurons.get(j), scale / inputNs));
+                connections.add(new InternalConnection(j, this, scale / inputNs));
             }
             n.setInputs(connections);
 
@@ -44,7 +61,7 @@ class Network {
 
             List<Connection> connections = new ArrayList<Connection>();
             for (int j = inputNs; j < inputNs + hiddenNs; j++) {
-                connections.add(new InternalConnection(neurons.get(j), scale / hiddenNs));
+                connections.add(new InternalConnection(j, this, scale / hiddenNs));
             }
             n.setInputs(connections);
 
@@ -121,18 +138,36 @@ class Network {
         public float getValue() {
             return scale * net.getInput(inputN);
         }
+
+        public void setNetwork(Network net) {
+            this.net = net;
+        }
+
+        public ExternalConnection clone(Network net) {
+            return new ExternalConnection(this.inputN, net, this.scale);
+        }
     }
 
     private class InternalConnection implements Connection {
-        Neuron n;
+        int neuronN;
+        Network net;
         float scale;
-        public InternalConnection(Neuron n, float scale) {
-            this.n = n;
+        public InternalConnection(int neuronN, Network net, float scale) {
+            this.neuronN = neuronN;
+            this.net = net;
             this.scale = scale;
         }
 
         public float getValue() {
-            return scale * (n.getFired() ? 1f : 0f);
+            return scale *  (net.getNeuron(neuronN).getFired() ? 1f : 0f);
+        }
+
+        public void setNetwork(Network net) {
+            this.net = net;
+        }
+
+        public InternalConnection clone(Network net) {
+            return new InternalConnection(this.neuronN, net, this.scale);
         }
     }
 
@@ -160,6 +195,10 @@ class Network {
 
     public Neuron getOutputNeuron(int i) {
         return neurons.get(inputNs + hiddenNs + i);
+    }
+
+    public Neuron getNeuron(int i) {
+        return neurons.get(i);
     }
 
     public List<Neuron> getNeurons() {
