@@ -7,7 +7,7 @@ class Network {
     int hiddenNs = 10;
     int outputNs = 4;
 
-    final float scale = 100f;
+    final float scale = 10f;
 
     float ratioInhib = 0.2f;
     List<Neuron> neurons = new ArrayList<Neuron>();
@@ -18,10 +18,12 @@ class Network {
 
     public Network() {
         for (int i = 0; i < inputNs; i++) {
-            Neuron n = createRandomNeuron(1);
+            Neuron n = createRandomNeuron(inputNs);
 
             List<Connection> connections = new ArrayList<Connection>();
-            connections.add(new ExternalConnection(i, this, scale));
+            for (int j = 0; j < inputNs; j++) {
+                connections.add(new ExternalConnection(j, this, scale / inputNs));
+            }
             n.setInputs(connections);
 
             neurons.add(n);
@@ -158,6 +160,10 @@ class Network {
 
     public Neuron getOutputNeuron(int i) {
         return neurons.get(inputNs + hiddenNs + i);
+    }
+
+    public List<Neuron> getNeurons() {
+        return neurons;
     }
 
     private float random(float r) {

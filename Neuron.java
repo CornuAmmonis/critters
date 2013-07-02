@@ -2,10 +2,11 @@ import java.util.List;
 
 class Neuron {
 
-    final float scale = 50f;
+    final float scale = 10f;
 
     final float fThresh = 30.0f;
 
+    NeuronParams neuronParams;
     List<Connection> inputs;
     float[] weights;
 
@@ -20,6 +21,11 @@ class Neuron {
         v = -65f;
         u = b * v;
         weights = params.weights;
+        neuronParams = params;
+    }
+
+    public NeuronParams getNeuronParams() {
+        return neuronParams;
     }
 
     public List<Connection> getInputs() {

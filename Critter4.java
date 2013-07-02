@@ -139,14 +139,14 @@ class Spinner {
   public void setEnergy(float energy) {
     this.energy = energy;
   }
-  
-  public float[] updateVelocity(float[] velocity) {
-    float range = 5000f;
-    float[] newVelocity = new float[2];
-    newVelocity[0] = ((velocity[0]*999f)/1000f) + (random(range) - range/2f)/1000f;
-    newVelocity[1] = ((velocity[1]*999f)/1000f) + (random(range) - range/2f)/1000f;
-    return newVelocity;
-  }
+
+    public float[] averager(float[] velocity, float[] prevVelocity, float ratio) {
+        float range = 5000f;
+        float[] newVelocity = new float[2];
+        newVelocity[0] = velocity[0]*ratio + prevVelocity[0]*(1-ratio);
+        newVelocity[1] = velocity[1]*ratio + prevVelocity[1]*(1-ratio);
+        return newVelocity;
+    }
   
   public void update() {
       setNetInput();
@@ -157,8 +157,10 @@ class Spinner {
       if (closest == null) return;
       float distance = getDistance(closest.getPosition(), this.getPosition());
       float[] netOutput = net.getVOutput();
-      velocity[0] = vScale * (netOutput[0] - netOutput[1]);
-      velocity[1] = vScale * (netOutput[2] - netOutput[3]);
+      float[] rawVelocityOutput = new float[2];
+      rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
+      rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
+      velocity = averager(rawVelocityOutput, velocity, 0.4f);
       if (interactDistance(distance)) {
           if (closest.getType() == this.getType()) {
               mate(this, closest);
