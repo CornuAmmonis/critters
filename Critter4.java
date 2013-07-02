@@ -74,8 +74,8 @@ public float getDistance(float[] a, float[] b) {
   return sqrt(sq(a[0] - b[0]) + sq(a[1] - b[1]));    
 }
 
-public boolean interactDistance(float distance) {
-  return distance < 20f;
+public boolean interactDistance(float distance, float radius) {
+  return distance < radius;
 }
 
 public float[] getDistanceVector(float[] a, float[] b) {
@@ -184,7 +184,7 @@ class Spinner {
       rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
       rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
       velocity = averager(rawVelocityOutput, velocity, 0.4f);
-      if (interactDistance(distance)) {
+      if (interactDistance(distance, getRadius())) {
           if (closest.getType() == this.getType()) {
               mate(this, closest);
           } else {
@@ -212,16 +212,16 @@ class Spinner {
   }
   
     public void mate(Spinner self, Spinner target) throws Exception {
-        float contribution = 0.5f;
+        float contribution = self.getEnergy() / (self.getEnergy() + target.getEnergy());
         int newId = newSp.size();
         if (self.getEnergy() > contribution && target.getEnergy() > contribution) {
             Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0.05f);
-            Spinner newSpinner = new Spinner(newId, self.getType(), 2 * contribution);
+            Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
             self.setEnergy(self.getEnergy() - contribution);
-            target.setEnergy(target.getEnergy() - contribution);
+            target.setEnergy(target.getEnergy() + contribution - 1);
             newSpinner.setPosition(self.getPosition());
             newSp.add(newSpinner);
-            print("+");
+            //print("+");
         }
       }
   
@@ -242,6 +242,10 @@ class Spinner {
       print(">");
     }   
   }
+
+  public float getRadius() {
+    return sqrt(100*energy);
+  }
   
   public void draw() {
     
@@ -252,7 +256,7 @@ class Spinner {
     }
     strokeWeight(2);
     
-    ellipse(position[0], position[1], sqrt(100*energy), sqrt(100*energy));
+    ellipse(position[0], position[1], getRadius(), getRadius());
   }
 }
 
