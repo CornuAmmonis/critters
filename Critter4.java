@@ -23,14 +23,14 @@ public class Critter4 extends PApplet {
 
 ArrayList<Spinner> sp;
 ArrayList<Spinner> newSp;
-int agents = 800;
-int maxAgents = 1000;
+int agents = 50;
+int maxAgents = 400;
 int maxId = 0;
 
 float vScale = 0.1f; //velocity scale
 
 float initialE = 2f;
-public final int inputN = 10;
+public final int inputN = 11;
 
 public void setup() {
   size(1024, 768, OPENGL);
@@ -215,7 +215,7 @@ class Spinner {
       float[] rawVelocityOutput = new float[2];
       rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
       rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-      velocity = rawVelocityOutput; //averager(rawVelocityOutput, velocity, 1f);
+      velocity = averager(rawVelocityOutput, velocity, 0.4f);
       if (interactDistance(distanceSame, getRadius())) {
           if (agents < maxAgents) {
             if (mate(this, closestSame)) {
@@ -235,20 +235,24 @@ class Spinner {
   
   public void setNetInput() {
     float[] input = new float[inputN];
-    Spinner closest = getClosest(this);
-    float[] distanceVector = getDistanceVector(closest.getPosition(), this.getPosition());
+    Spinner closestSame = getClosestOfSameType(this, true);
+    Spinner closestDifferent = getClosestOfSameType(this, false);
+    float[] distanceVectorSame = getDistanceVector(closestSame.getPosition(), this.getPosition());
+    float[] distanceVectorDifferent = getDistanceVector(closestDifferent.getPosition(), this.getPosition());
     float[] velocity = getVelocity();
-    int type = closest.getType();
     
-    input[0] = distanceVector[0];
-    input[1] = distanceVector[1];
-    input[2] = velocity[0];
-    input[3] = velocity[1];
-    input[4] = type + 0f;
-    input[5] = closest.getRadius();
+    input[0] = distanceVectorSame[0];
+    input[1] = distanceVectorSame[1];
+    input[2] = distanceVectorDifferent[0];
+    input[3] = distanceVectorDifferent[1];
+    input[4] = velocity[0];
+    input[5] = velocity[1];
+    input[6] = closestSame.getRadius();
+    input[6] = closestDifferent.getRadius();
     input[7] = activation(this.getAge(), 1f, 1E-5f, 3f);
-    input[8] = activation(closest.getAge(), 1f, 1E-5f, 3f);
-    input[9] = this.getEnergy();
+    input[8] = activation(closestSame.getAge(), 1f, 1E-5f, 3f);
+    input[9] = activation(closestDifferent.getAge(), 1f, 1E-5f, 3f);
+    input[10] = this.getEnergy();
 
     net.setInputs(input);
   }
