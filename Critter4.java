@@ -23,12 +23,13 @@ public class Critter4 extends PApplet {
 
 ArrayList<Spinner> sp;
 ArrayList<Spinner> newSp;
-int agents = 100;
+int agents = 800;
+int maxAgents = 1000;
+int maxId = 0;
 
-float vScale = 0.2f; //velocity scale
+float vScale = 0.1f; //velocity scale
 
 float initialE = 2f;
-
 public final int inputN = 10;
 
 public void setup() {
@@ -37,10 +38,11 @@ public void setup() {
   sp = new ArrayList<Spinner>();
   for (int i = 0; i < agents; i++) {
     if (i < agents/2) {
-      sp.add(i, new Spinner(i,0,initialE));
+      sp.add(i, new Spinner(maxId,0,initialE));
     } else {
-      sp.add(i, new Spinner(i,1,initialE));
-    }  
+      sp.add(i, new Spinner(maxId,1,initialE));
+    }
+    maxId++;
   }
 }
 
@@ -58,7 +60,7 @@ public void draw() {
         totalEnergy += spinner.getEnergy();
         spinner.draw();
     }
-    System.out.println(totalEnergy);
+    System.out.println(totalEnergy  + ", " + newSp.size() + ", " + agents + ", " + maxId);
     sp = newSp;
 }
 
@@ -196,12 +198,19 @@ class Spinner {
       float[] rawVelocityOutput = new float[2];
       rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
       rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-      velocity = averager(rawVelocityOutput, velocity, 0.4f);
+      velocity = averager(rawVelocityOutput, velocity, 1f);
       if (interactDistance(distance, getRadius())) {
           if (closest.getType() == this.getType()) {
-              mate(this, closest);
+              if (agents < maxAgents) {
+                if (mate(this, closest)) {
+                    agents++;
+                    maxId++;
+                }
+              }
           } else {
-              attack(this, closest);
+              if (attack(this, closest)) {
+                  agents--;
+              }
           }
       }
       position[0] = pm(position[0] + velocity[0], (float) width);
@@ -231,24 +240,42 @@ class Spinner {
     public float activation(float x, float scaleRange, float scaleDomain, float shift) {
         return scaleRange * ((float) Math.tanh((x + shift) * scaleDomain) + 1f);
     }
-  
-    public void mate(Spinner self, Spinner target) throws Exception {
-        float contribution = self.getEnergy() / (self.getEnergy() + target.getEnergy());
-        int newId = newSp.size();
-        if (self.getEnergy() > contribution && target.getEnergy() > contribution) {
+
+    //returns true if a new agent was created
+    public boolean mate(Spinner self, Spinner target) throws Exception {
+        if (!newSp.contains(target) || !newSp.contains(self)) {
+            return false;    //crappy way of handling concurrency issues
+        }
+
+        final float childEnergy = 1f;
+        float minE = Math.min(self.getEnergy(), target.getEnergy());
+        float maxE = Math.max(self.getEnergy(), target.getEnergy());
+        float minContribution = (minE / (minE + maxE)) * childEnergy;
+        float maxContribution = (maxE / (minE + maxE)) * childEnergy;
+
+        int newId = maxId;
+        if (minE + maxE >= childEnergy) {
             Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0.05f);
-            Spinner newSpinner = new Spinner(newId, self.getType(), 1f);
-            self.setEnergy(self.getEnergy() - contribution);
-            target.setEnergy(target.getEnergy() + contribution - 1f);
+            Spinner newSpinner = new Spinner(newId, self.getType(), childEnergy, newNet);
+            if (self.getEnergy() > target.getEnergy()) {
+                self.setEnergy(self.getEnergy() - maxContribution);
+                target.setEnergy(target.getEnergy() - minContribution);
+            } else {
+                self.setEnergy(self.getEnergy() - minContribution);
+                target.setEnergy(target.getEnergy() - maxContribution);
+            }
             newSpinner.setPosition(self.getPosition());
             newSp.add(newSpinner);
+            return true;
             //print("+");
         }
+        return false;
       }
-  
-  public void attack(Spinner self, Spinner target) {
-    if (!newSp.contains(target)) {
-        return;    //crappy way of handling concurrency issues
+
+  //returns true if someone died
+  public boolean attack(Spinner self, Spinner target) {
+    if (!newSp.contains(target) || !newSp.contains(self)) {
+        return false;    //crappy way of handling concurrency issues
     }
 
     float rdm = random(1f);
@@ -261,7 +288,8 @@ class Spinner {
       target.setEnergy(target.getEnergy() + self.getEnergy());
       newSp.remove(self);
       //print(">");
-    }   
+    }
+    return true;
   }
 
   public float getRadius() {
