@@ -74,9 +74,24 @@ public Spinner getClosest(Spinner a) {
         min = newdist;
         closest = spinner;
       }
-    }    
+    }
   }
-  return closest;  
+  return closest;
+}
+
+public Spinner getClosestOfSameType(Spinner a, boolean same) {
+    Float min = null;
+    Spinner closest = null;
+    for (Spinner spinner : newSp) {
+        if (spinner.getId() != a.getId() && ((same && (spinner.getType() == a.getType())) || (!same && (spinner.getType() != a.getType())))) {
+            float newdist = getDistance(spinner.getPosition(), a.getPosition());
+            if (min == null || newdist < min) {
+                min = newdist;
+                closest = spinner;
+            }
+        }
+    }
+    return closest;
 }
 
 public float getDistance(float[] a, float[] b) {
@@ -191,26 +206,27 @@ class Spinner {
       net.update();
       float rdm = random(1f);
 
-      Spinner closest = getClosest(this);
-      if (closest == null) return;
-      float distance = getDistance(closest.getPosition(), this.getPosition());
+      Spinner closestSame = getClosestOfSameType(this, true);
+      Spinner closestDifferent = getClosestOfSameType(this, true);
+      if (closestSame == null || closestDifferent == null) return;
+      float distanceSame = getDistance(closestSame.getPosition(), this.getPosition());
+      float distanceDifferent = getDistance(closestDifferent.getPosition(), this.getPosition());
       float[] netOutput = net.getVOutput();
       float[] rawVelocityOutput = new float[2];
       rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
       rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-      velocity = averager(rawVelocityOutput, velocity, 1f);
-      if (interactDistance(distance, getRadius())) {
-          if (closest.getType() == this.getType()) {
-              if (agents < maxAgents) {
-                if (mate(this, closest)) {
-                    agents++;
-                    maxId++;
-                }
-              }
-          } else {
-              if (attack(this, closest)) {
-                  agents--;
-              }
+      velocity = rawVelocityOutput; //averager(rawVelocityOutput, velocity, 1f);
+      if (interactDistance(distanceSame, getRadius())) {
+          if (agents < maxAgents) {
+            if (mate(this, closestSame)) {
+                agents++;
+                maxId++;
+            }
+          }
+      }
+      if (interactDistance(distanceDifferent, getRadius())) {
+          if (attack(this, closestDifferent)) {
+              agents--;
           }
       }
       position[0] = pm(position[0] + velocity[0], (float) width);
@@ -243,15 +259,17 @@ class Spinner {
 
     //returns true if a new agent was created
     public boolean mate(Spinner self, Spinner target) throws Exception {
-        if (!newSp.contains(target) || !newSp.contains(self)) {
+        final float childEnergy = 1f;
+        final float minEnergy = 0.1f;
+        float minE = Math.min(self.getEnergy(), target.getEnergy());
+        float maxE = Math.max(self.getEnergy(), target.getEnergy());
+
+        if (!newSp.contains(target) || !newSp.contains(self) || minE < minEnergy) {
             return false;    //crappy way of handling concurrency issues
         }
 
-        final float childEnergy = 1f;
-        float minE = Math.min(self.getEnergy(), target.getEnergy());
-        float maxE = Math.max(self.getEnergy(), target.getEnergy());
-        float minContribution = (minE / (minE + maxE)) * childEnergy;
         float maxContribution = (maxE / (minE + maxE)) * childEnergy;
+        float minContribution = (minE / (minE + maxE)) * childEnergy;
 
         int newId = maxId;
         if (minE + maxE >= childEnergy) {
@@ -264,7 +282,11 @@ class Spinner {
                 self.setEnergy(self.getEnergy() - minContribution);
                 target.setEnergy(target.getEnergy() - maxContribution);
             }
-            newSpinner.setPosition(self.getPosition());
+            double angle = random(2f * (float)Math.PI);
+            float[] newPosition = new float[2];
+            newPosition[0] = self.getPosition()[0] + self.getRadius() * (float)Math.cos(angle);
+            newPosition[1] = self.getPosition()[1] + self.getRadius() * (float)Math.sin(angle);
+            newSpinner.setPosition(newPosition);
             newSp.add(newSpinner);
             return true;
             //print("+");
@@ -293,7 +315,7 @@ class Spinner {
   }
 
   public float getRadius() {
-    return sqrt(100*energy);
+    return sqrt(100*energy)/2f;
   }
   
   public void draw() {
@@ -305,7 +327,7 @@ class Spinner {
     }
     strokeWeight(2);
     
-    ellipse(position[0], position[1], getRadius(), getRadius());
+    ellipse(position[0], position[1], getRadius() * 2f, getRadius() * 2f);
   }
 }
 
