@@ -30,4 +30,21 @@ public class NeuronParams {
         neuronParams.weights = this.weights.clone();
         return neuronParams;
     }
+
+    public float compare(NeuronParams target) {
+        float avgPctDiff = 0f;
+        float dA = percentDifference(this.a, target.a);
+        float dB = percentDifference(this.b, target.b);
+        float dC = percentDifference(this.c, target.c);
+        float dD = percentDifference(this.d, target.d);
+        avgPctDiff = dA + dB + dC + dD;
+        for (int i = 0; i < weights.length; i++) {
+            avgPctDiff += percentDifference(this.weights[i], target.weights[i]);
+        }
+        return avgPctDiff / (4 + weights.length);
+    }
+
+    private float percentDifference(float x, float y) {
+        return Math.abs(x - y) / (Math.abs(x) + Math.abs(y));
+    }
 }

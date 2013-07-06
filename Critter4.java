@@ -3,8 +3,8 @@ import processing.data.*;
 import processing.event.*; 
 import processing.opengl.*; 
 
-import processing.opengl.*; 
-import java.util.*; 
+import processing.opengl.*;
+import java.util.*;
 import java.util.*; 
 import java.util.*; 
 
@@ -26,15 +26,20 @@ ArrayList<Spinner> newSp;
 int agents = 50;
 int maxAgents = 400;
 int maxId = 0;
+int maxType = 1;
 
 float vScale = 0.1f; //velocity scale
 
-float initialE = 2f;
-public final int inputN = 11;
+float initialE = 10f;
+public final int inputN = 12;
 
 public void setup() {
-  size(1024, 768, OPENGL);
+  size(640, 480, OPENGL);
   noFill();
+  colorMode(HSB, 100);
+
+
+
   sp = new ArrayList<Spinner>();
   for (int i = 0; i < agents; i++) {
     if (i < agents/2) {
@@ -47,9 +52,9 @@ public void setup() {
 }
 
 public void draw() {
+    background(0, 0, 100);
     newSp = new ArrayList(sp);
-    background(255);
-    float totalEnergy = 0;
+    float totalEnergy = 0f;
     for (Spinner spinner : sp) {
         try{
             spinner.update();
@@ -62,6 +67,14 @@ public void draw() {
     }
     System.out.println(totalEnergy  + ", " + newSp.size() + ", " + agents + ", " + maxId);
     sp = newSp;
+}
+
+public float getTotalEnergy() {
+    float totalEnergy = 0f;
+    for (Spinner spinner : newSp) {
+        totalEnergy += spinner.getEnergy();
+    }
+    return totalEnergy;
 }
 
 public Spinner getClosest(Spinner a) {
@@ -83,11 +96,23 @@ public Spinner getClosestOfSameType(Spinner a, boolean same) {
     Float min = null;
     Spinner closest = null;
     for (Spinner spinner : newSp) {
-        if (spinner.getId() != a.getId() && ((same && (spinner.getType() == a.getType())) || (!same && (spinner.getType() != a.getType())))) {
-            float newdist = getDistance(spinner.getPosition(), a.getPosition());
-            if (min == null || newdist < min) {
-                min = newdist;
-                closest = spinner;
+        if (spinner.getId() != a.getId()) {
+            if (same) {
+                if (spinner.getType() == a.getType()) {
+                    float newdist = getDistance(spinner.getPosition(), a.getPosition());
+                    if (min == null || newdist < min) {
+                        min = newdist;
+                        closest = spinner;
+                    }
+                }
+            } else {
+                if (spinner.getType() != a.getType()) {
+                    float newdist = getDistance(spinner.getPosition(), a.getPosition());
+                    if (min == null || newdist < min) {
+                        min = newdist;
+                        closest = spinner;
+                    }
+                }
             }
         }
     }
@@ -95,7 +120,7 @@ public Spinner getClosestOfSameType(Spinner a, boolean same) {
 }
 
 public float getDistance(float[] a, float[] b) {
-  return sqrt(sq(a[0] - b[0]) + sq(a[1] - b[1]));    
+  return (float)Math.sqrt(Math.pow(a[0] - b[0], 2d) + Math.pow(a[1] - b[1], 2d));
 }
 
 public boolean interactDistance(float distance, float radius) {
@@ -162,6 +187,14 @@ class Spinner {
         return type;
     }
 
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public boolean getAlive() {
+        return getAge() < 30000;
+    }
+
     public long getAge() {
         return System.currentTimeMillis() - this.birthday;
     }
@@ -171,6 +204,9 @@ class Spinner {
     }
 
     public void setPosition(float[] position) {
+        if (Float.isNaN(position[0]) || Float.isNaN(position[1])) {
+            throw new RuntimeException("it's nan");
+        }
         this.position = position;
     }
 
@@ -202,43 +238,84 @@ class Spinner {
     }
   
   public void update() throws Exception {
-      setNetInput();
-      net.update();
-      float rdm = random(1f);
+      if (getAlive()) {
+          float selfEnergy = getEnergy();
+          setNetInput();
+          net.update();
+          float rdm = random(1f);
 
-      Spinner closestSame = getClosestOfSameType(this, true);
-      Spinner closestDifferent = getClosestOfSameType(this, true);
-      if (closestSame == null || closestDifferent == null) return;
-      float distanceSame = getDistance(closestSame.getPosition(), this.getPosition());
-      float distanceDifferent = getDistance(closestDifferent.getPosition(), this.getPosition());
-      float[] netOutput = net.getVOutput();
-      float[] rawVelocityOutput = new float[2];
-      rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
-      rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-      velocity = averager(rawVelocityOutput, velocity, 0.4f);
-      if (interactDistance(distanceSame, getRadius())) {
-          if (agents < maxAgents) {
-            if (mate(this, closestSame)) {
-                agents++;
-                maxId++;
-            }
+          Spinner closestSame = getClosestOfSameType(this, true);
+          Spinner closestDifferent = getClosestOfSameType(this, false);
+          float distanceSame;
+          float distanceDifferent;
+
+          if (closestSame == null) {
+              distanceSame = 0f;
+          } else {
+              distanceSame = getDistance(closestSame.getPosition(), this.getPosition());
           }
-      }
-      if (interactDistance(distanceDifferent, getRadius())) {
-          if (attack(this, closestDifferent)) {
-              agents--;
+
+          if (closestDifferent == null) {
+              distanceDifferent = 0f;
+          } else {
+              distanceDifferent = getDistance(closestDifferent.getPosition(), this.getPosition());
           }
+
+          float[] netOutput = net.getVOutput();
+          float[] rawVelocityOutput = new float[2];
+          rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
+          rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
+          boolean reproduce = net.getFired()[4];
+          velocity = averager(rawVelocityOutput, velocity, 0.4f);
+
+          if (reproduce && closestSame != null && interactDistance(distanceSame, getRadius() + closestSame.getRadius())) {
+              if (agents < maxAgents) {
+                if (mate(this, closestSame)) {
+                    agents++;
+                    maxId++;
+                }
+              }
+          } else if (reproduce) {
+              if (agents < maxAgents) {
+                  if (mate(this, this)) {
+                      agents++;
+                      maxId++;
+                  }
+              }
+          }
+          if (closestDifferent != null && interactDistance(distanceDifferent, getRadius() + closestDifferent.getRadius())) {
+              float tE = closestDifferent.getEnergy();
+              float sE = this.getEnergy();
+              if (attack(this, closestDifferent)) {
+                  agents--;
+              }
+              float tE2 = closestDifferent.getEnergy();
+              float sE2 = this.getEnergy();
+              if ((tE2 + sE2) - (tE + sE) > 0.001f) {
+                  throw new Exception("energy violation");
+              }
+          }
+          position[0] = pm(position[0] + velocity[0], (float) width);
+          position[1] = pm(position[1] + velocity[1], (float) height);
       }
-      position[0] = pm(position[0] + velocity[0], (float) width);
-      position[1] = pm(position[1] + velocity[1], (float) height);
   }
   
   public void setNetInput() {
     float[] input = new float[inputN];
     Spinner closestSame = getClosestOfSameType(this, true);
     Spinner closestDifferent = getClosestOfSameType(this, false);
-    float[] distanceVectorSame = getDistanceVector(closestSame.getPosition(), this.getPosition());
-    float[] distanceVectorDifferent = getDistanceVector(closestDifferent.getPosition(), this.getPosition());
+    float[] distanceVectorSame = new float[2];
+    float[] distanceVectorDifferent = new float[2];
+    if (closestSame != null) {
+        distanceVectorSame = getDistanceVector(closestSame.getPosition(), this.getPosition());
+    } else {
+        distanceVectorSame = new float[]{0f, 0f};
+    }
+    if (closestDifferent != null) {
+        distanceVectorDifferent = getDistanceVector(closestDifferent.getPosition(), this.getPosition());
+    } else {
+        distanceVectorDifferent = new float[]{0f, 0f};
+    }
     float[] velocity = getVelocity();
     
     input[0] = distanceVectorSame[0];
@@ -247,12 +324,22 @@ class Spinner {
     input[3] = distanceVectorDifferent[1];
     input[4] = velocity[0];
     input[5] = velocity[1];
-    input[6] = closestSame.getRadius();
-    input[6] = closestDifferent.getRadius();
-    input[7] = activation(this.getAge(), 1f, 1E-5f, 3f);
-    input[8] = activation(closestSame.getAge(), 1f, 1E-5f, 3f);
-    input[9] = activation(closestDifferent.getAge(), 1f, 1E-5f, 3f);
-    input[10] = this.getEnergy();
+    if (closestSame != null) {
+        input[6] = closestSame.getRadius();
+        input[7] = activation(closestSame.getAge(), 1f, 1E-5f, 3f);
+    } else {
+        input[6] = 0f;
+        input[7] = 0f;
+    }
+    if (closestDifferent != null) {
+        input[8] = closestDifferent.getRadius();
+        input[9] = activation(closestDifferent.getAge(), 1f, 1E-5f, 3f);
+    } else {
+        input[8] = 0f;
+        input[9] = 0f;
+    }
+    input[10] = activation(this.getAge(), 1f, 1E-5f, 3f);
+    input[11] = this.getEnergy();
 
     net.setInputs(input);
   }
@@ -263,6 +350,20 @@ class Spinner {
 
     //returns true if a new agent was created
     public boolean mate(Spinner self, Spinner target) throws Exception {
+        float selfEnergy = self.getEnergy();
+        float targetEnergy = target.getEnergy();
+        float newEnergy = 0f;
+        if (!target.getAlive()) {
+            return false;
+        }
+        float threshold = 0.1f;
+        float minRemainder = 0.05f;
+
+        //prevent massive amount of inbreeding
+        if (self.getAge() < 1000 || target.getAge() < 1000) {
+            return false;
+        }
+
         final float childEnergy = 1f;
         final float minEnergy = 0.1f;
         float minE = Math.min(self.getEnergy(), target.getEnergy());
@@ -272,24 +373,41 @@ class Spinner {
             return false;    //crappy way of handling concurrency issues
         }
 
+        boolean selfIsMax = self.getEnergy() > target.getEnergy();
+
         float maxContribution = (maxE / (minE + maxE)) * childEnergy;
         float minContribution = (minE / (minE + maxE)) * childEnergy;
 
+        if (minE - minContribution < minRemainder || maxE - maxContribution < minRemainder || (self == target && minE - childEnergy < minRemainder)) {
+            return false;
+        }
+
         int newId = maxId;
         if (minE + maxE >= childEnergy) {
-            Network newNet = new Network(self.getNetwork(), target.getNetwork(), 0.05f);
-            Spinner newSpinner = new Spinner(newId, self.getType(), childEnergy, newNet);
-            if (self.getEnergy() > target.getEnergy()) {
-                self.setEnergy(self.getEnergy() - maxContribution);
-                target.setEnergy(target.getEnergy() - minContribution);
+            int type = self.getType();
+            if (self.getNetwork().compare(target.getNetwork()) > threshold) {
+                type = ++maxType;
+            }
+
+            float mutation = 0.1f;
+            Network newNet = new Network(self.getNetwork(), target.getNetwork(), mutation);
+            Spinner newSpinner = new Spinner(newId, type, childEnergy, newNet);
+            if (self == target) {
+                self.setEnergy(maxE - childEnergy);
+            } else if (selfIsMax) {
+                self.setEnergy(maxE - maxContribution);
+                target.setEnergy(minE - minContribution);
             } else {
-                self.setEnergy(self.getEnergy() - minContribution);
-                target.setEnergy(target.getEnergy() - maxContribution);
+                self.setEnergy(minE - minContribution);
+                target.setEnergy(maxE - maxContribution);
             }
             double angle = random(2f * (float)Math.PI);
             float[] newPosition = new float[2];
             newPosition[0] = self.getPosition()[0] + self.getRadius() * (float)Math.cos(angle);
             newPosition[1] = self.getPosition()[1] + self.getRadius() * (float)Math.sin(angle);
+            if (Float.isNaN(newPosition[0]) || Float.isNaN(newPosition[1])) {
+                throw new RuntimeException("it's nan");
+            }
             newSpinner.setPosition(newPosition);
             newSp.add(newSpinner);
             return true;
@@ -305,29 +423,43 @@ class Spinner {
     }
 
     float rdm = random(1f);
-    float ratio = self.getEnergy() / (target.getEnergy() + self.getEnergy());
-    if (rdm < ratio) {
-      self.setEnergy(self.getEnergy() + target.getEnergy());
-      newSp.remove(target);
-      //print("<");
+    //float ratio = self.getEnergy() / (target.getEnergy() + self.getEnergy());
+    float targetEnergy = target.getEnergy();
+    float selfEnergy = self.getEnergy();
+    float energyWager = Math.min(self.getEnergy(), target.getEnergy());
+    boolean allSelfEnergy = targetEnergy >= selfEnergy;
+    boolean allTargetEnergy = selfEnergy >= targetEnergy;
+    if (rdm < 0.5 || !target.getAlive()) {
+      self.setEnergy(selfEnergy + energyWager);
+      target.setEnergy(targetEnergy - energyWager);
+      if (allTargetEnergy) {
+          newSp.remove(target);
+          return true;
+      } else {
+          return false;
+      }
     } else {
-      target.setEnergy(target.getEnergy() + self.getEnergy());
-      newSp.remove(self);
-      //print(">");
+      target.setEnergy(targetEnergy + energyWager);
+      self.setEnergy(selfEnergy - energyWager);
+      if (allSelfEnergy) {
+        newSp.remove(self);
+        return true;
+      } else {
+        return false;
+      }
     }
-    return true;
   }
 
   public float getRadius() {
-    return sqrt(100*energy)/2f;
+    return sqrt(10f*energy)*2f;
   }
   
   public void draw() {
     
-    if (this.getType() == 0) {
-      stroke(100, 100, 200);
+    if (getAlive()) {
+        stroke((51 * this.getType()) % 100, 100, 100);
     } else {
-      stroke(200, 100, 100);  
+        stroke(0, 0, 0);
     }
     strokeWeight(2);
     

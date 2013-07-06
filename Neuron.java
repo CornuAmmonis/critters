@@ -77,7 +77,6 @@ class Neuron {
     }
 
     public boolean getFired() {
-        //if (fired) System.out.print("*");
         return fired;
     }
 
@@ -103,6 +102,10 @@ class Neuron {
         Neuron mutatedClone = new Neuron(newParams);
         mutatedClone.setInputs(clone.getInputs());
         return mutatedClone;
+    }
+
+    public float compare(Neuron target) {
+        return neuronParams.compare(target.getNeuronParams());
     }
 
 }

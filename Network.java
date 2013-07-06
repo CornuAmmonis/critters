@@ -3,9 +3,9 @@ import java.util.List;
 
 class Network {
     float[] inputs;
-    int inputNs = 11;
+    int inputNs = 12;
     int hiddenNs = 10;
-    int outputNs = 4;
+    int outputNs = 5;
 
     final float scale = 10f;
 
@@ -190,6 +190,14 @@ class Network {
         return output;
     }
 
+    public boolean[] getFired() {
+        boolean[] output = new boolean[outputNs];
+        for (int i = 0; i < outputNs; i++) {
+            output[i] = getOutputNeuron(i).getFired();
+        }
+        return output;
+    }
+
     public float[] getVOutput() {
         float[] output = new float[outputNs];
         for (int i = 0; i < outputNs; i++) {
@@ -216,5 +224,13 @@ class Network {
 
     private float pow(float b, float e) {
         return (float)Math.pow(b, e);
+    }
+
+    public float compare(Network target) {
+        float avgPctDiff = 0f;
+        for (int i = 0; i < this.getNeurons().size(); i++) {
+            avgPctDiff += this.getNeuron(i).compare(target.getNeuron(i));
+        }
+        return avgPctDiff / this.getNeurons().size();
     }
 }
