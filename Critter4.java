@@ -31,7 +31,7 @@ int maxType = 1;
 float vScale = 0.1f; //velocity scale
 
 float initialE = 10f;
-public final int inputN = 12;
+public final int inputN = 14;
 
 public void setup() {
   size(640, 480, OPENGL);
@@ -192,7 +192,7 @@ class Spinner {
     }
 
     public boolean getAlive() {
-        return getAge() < 30000;
+        return getAge() < 10000;
     }
 
     public long getAge() {
@@ -268,14 +268,17 @@ class Spinner {
           boolean reproduce = net.getFired()[4];
           velocity = averager(rawVelocityOutput, velocity, 0.4f);
 
+          boolean mated = false;
           if (reproduce && closestSame != null && interactDistance(distanceSame, getRadius() + closestSame.getRadius())) {
               if (agents < maxAgents) {
                 if (mate(this, closestSame)) {
+                    mated = true;
                     agents++;
                     maxId++;
                 }
               }
-          } else if (reproduce) {
+          }
+          if (reproduce && !mated) {
               if (agents < maxAgents) {
                   if (mate(this, this)) {
                       agents++;
@@ -327,19 +330,23 @@ class Spinner {
     if (closestSame != null) {
         input[6] = closestSame.getRadius();
         input[7] = activation(closestSame.getAge(), 1f, 1E-5f, 3f);
+        input[8] = closestSame.getAlive() ? 1f : 0f;
     } else {
         input[6] = 0f;
         input[7] = 0f;
+        input[8] = 0f;
     }
     if (closestDifferent != null) {
-        input[8] = closestDifferent.getRadius();
-        input[9] = activation(closestDifferent.getAge(), 1f, 1E-5f, 3f);
+        input[9] = closestDifferent.getRadius();
+        input[10] = activation(closestDifferent.getAge(), 1f, 1E-5f, 3f);
+        input[11] = closestDifferent.getAlive() ? 1f : 0f;
     } else {
-        input[8] = 0f;
         input[9] = 0f;
+        input[10] = 0f;
+        input[11] = 0f;
     }
-    input[10] = activation(this.getAge(), 1f, 1E-5f, 3f);
-    input[11] = this.getEnergy();
+    input[12] = activation(this.getAge(), 1f, 1E-5f, 3f);
+    input[13] = this.getEnergy();
 
     net.setInputs(input);
   }
@@ -405,9 +412,9 @@ class Spinner {
             float[] newPosition = new float[2];
             newPosition[0] = self.getPosition()[0] + self.getRadius() * (float)Math.cos(angle);
             newPosition[1] = self.getPosition()[1] + self.getRadius() * (float)Math.sin(angle);
-            if (Float.isNaN(newPosition[0]) || Float.isNaN(newPosition[1])) {
-                throw new RuntimeException("it's nan");
-            }
+            //if (Float.isNaN(newPosition[0]) || Float.isNaN(newPosition[1])) {
+            //    throw new RuntimeException("it's nan");
+            //}
             newSpinner.setPosition(newPosition);
             newSp.add(newSpinner);
             return true;

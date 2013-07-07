@@ -3,7 +3,7 @@ import java.util.List;
 
 class Network {
     float[] inputs;
-    int inputNs = 12;
+    int inputNs = 14;
     int hiddenNs = 10;
     int outputNs = 5;
 
