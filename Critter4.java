@@ -27,6 +27,7 @@ int agents = 50;
 int maxAgents = 400;
 int maxId = 0;
 int maxType = 1;
+float childEnergy = 1f;
 
 float vScale = 0.1f; //velocity scale
 
@@ -151,6 +152,9 @@ class Spinner {
     float energy;
     Network net;
     long birthday;
+    boolean alive = true;
+
+    float usedEnergy = 0f;
 
     float[] position = new float[2];
     float[] velocity = new float[2];
@@ -192,7 +196,11 @@ class Spinner {
     }
 
     public boolean getAlive() {
-        return getAge() < 10000;
+        return !alive || getAge() < 10000;
+    }
+
+    public void setAlive(boolean alive) {
+        this.alive = alive;
     }
 
     public long getAge() {
@@ -212,6 +220,10 @@ class Spinner {
 
     public float[] getVelocity() {
         return velocity;
+    }
+
+    public float getUsedEnergy() {
+        return usedEnergy;
     }
 
     public float getEnergy() {
@@ -298,8 +310,36 @@ class Spinner {
                   throw new Exception("energy violation");
               }
           }
-          position[0] = pm(position[0] + velocity[0], (float) width);
-          position[1] = pm(position[1] + velocity[1], (float) height);
+
+          if (agents < maxAgents) {
+              float energyScale = 0.001f;
+              float velocityMagnitude = (float)Math.sqrt(Math.pow(velocity[0], 2f) + Math.pow(velocity[1], 2f));
+              selfEnergy = this.getEnergy();
+              float energyLoss = energyScale * (selfEnergy * (float)Math.pow(velocityMagnitude, 2f));
+              this.setEnergy(selfEnergy - energyLoss);
+
+              if (selfEnergy < energyLoss) {
+                  this.setEnergy(0f);
+                  float ratio = selfEnergy / energyLoss;
+                  velocity[0] = ratio * (velocity[0] / velocityMagnitude);
+                  velocity[1] = ratio * (velocity[1] / velocityMagnitude);
+                  energyLoss = selfEnergy;
+                  this.setAlive(false);
+              }
+
+              position[0] = pm(position[0] + velocity[0], (float) width);
+              position[1] = pm(position[1] + velocity[1], (float) height);
+
+              if (usedEnergy  > childEnergy) {
+                  usedEnergy -= childEnergy;
+                  int newId = maxId;
+                  int type = this.getType();
+                  Spinner newSpinner = new Spinner(newId, type, energyLoss);
+                  newSpinner.setAlive(false);
+                  newSp.add(newSpinner);
+                  agents++;
+              }
+          }
       }
   }
   
@@ -412,13 +452,10 @@ class Spinner {
             float[] newPosition = new float[2];
             newPosition[0] = self.getPosition()[0] + self.getRadius() * (float)Math.cos(angle);
             newPosition[1] = self.getPosition()[1] + self.getRadius() * (float)Math.sin(angle);
-            //if (Float.isNaN(newPosition[0]) || Float.isNaN(newPosition[1])) {
-            //    throw new RuntimeException("it's nan");
-            //}
+
             newSpinner.setPosition(newPosition);
             newSp.add(newSpinner);
             return true;
-            //print("+");
         }
         return false;
       }
@@ -441,6 +478,7 @@ class Spinner {
       target.setEnergy(targetEnergy - energyWager);
       if (allTargetEnergy) {
           newSp.remove(target);
+          self.setEnergy(self.getEnergy() + target.getUsedEnergy());
           return true;
       } else {
           return false;
@@ -450,6 +488,7 @@ class Spinner {
       self.setEnergy(selfEnergy - energyWager);
       if (allSelfEnergy) {
         newSp.remove(self);
+        target.setEnergy(target.getEnergy() + self.getUsedEnergy());
         return true;
       } else {
         return false;
