@@ -306,9 +306,9 @@ class Spinner {
               }
               float tE2 = closestDifferent.getEnergy();
               float sE2 = this.getEnergy();
-              if ((tE2 + sE2) - (tE + sE) > 0.001f) {
+              /*if ((tE2 + sE2) - (tE + sE) > 0.001f) {
                   throw new Exception("energy violation");
-              }
+              }*/
           }
 
           if (agents < maxAgents) {
@@ -316,7 +316,7 @@ class Spinner {
               float velocityMagnitude = (float)Math.sqrt(Math.pow(velocity[0], 2f) + Math.pow(velocity[1], 2f));
               selfEnergy = this.getEnergy();
               float energyLoss = energyScale * (selfEnergy * (float)Math.pow(velocityMagnitude, 2f));
-              this.setEnergy(selfEnergy - energyLoss);
+
 
               if (selfEnergy < energyLoss) {
                   this.setEnergy(0f);
@@ -325,16 +325,20 @@ class Spinner {
                   velocity[1] = ratio * (velocity[1] / velocityMagnitude);
                   energyLoss = selfEnergy;
                   this.setAlive(false);
+              } else {
+                  this.setEnergy(selfEnergy - energyLoss);
               }
 
               position[0] = pm(position[0] + velocity[0], (float) width);
               position[1] = pm(position[1] + velocity[1], (float) height);
 
+              usedEnergy += energyLoss;
+
               if (usedEnergy  > childEnergy) {
                   usedEnergy -= childEnergy;
                   int newId = maxId;
                   int type = this.getType();
-                  Spinner newSpinner = new Spinner(newId, type, energyLoss);
+                  Spinner newSpinner = new Spinner(newId, type, childEnergy);
                   newSpinner.setAlive(false);
                   newSp.add(newSpinner);
                   agents++;
