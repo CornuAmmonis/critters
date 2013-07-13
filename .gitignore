@@ -3,3 +3,7 @@
 # Package Files #
 *.war
 *.ear
+
+# IntelliJ Files #
+*.iml
+.idea/
