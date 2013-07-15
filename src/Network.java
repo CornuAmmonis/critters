@@ -3,9 +3,9 @@ import java.util.List;
 
 class Network {
     float[] inputs;
-    int inputNs = 14;
+    int inputNs = 16;
     int hiddenNs = 10;
-    int outputNs = 5;
+    int outputNs = 6;
 
     final float scale = 10f;
 

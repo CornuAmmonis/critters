@@ -34,7 +34,7 @@ public class Critter4 extends PApplet {
     float vScale = 0.1f; //velocity scale
 
     float initialE = 10f;
-    public final int inputN = 14;
+    public final int inputN = 16;
 
     GlobalProperties globalProperties;
 
@@ -298,7 +298,8 @@ public class Critter4 extends PApplet {
                         }
                     }
                 }
-                if (closestDifferent != null && interactDistance(distanceDifferent, getRadius() + closestDifferent.getRadius())) {
+                boolean attack = net.getFired()[5];
+                if (attack && closestDifferent != null && interactDistance(distanceDifferent, getRadius() + closestDifferent.getRadius())) {
                     if (attack(this, closestDifferent)) {
                         agents--;
                     }
@@ -346,8 +347,10 @@ public class Critter4 extends PApplet {
             float[] input = new float[inputN];
             Spinner closestSame = getClosestOfSameType(this, true);
             Spinner closestDifferent = getClosestOfSameType(this, false);
+            Food closestFood = globalProperties.getClosest(this.getPosition());
             float[] distanceVectorSame;
             float[] distanceVectorDifferent;
+            float[] distanceVectorFood;
             if (closestSame != null) {
                 distanceVectorSame = getDistanceVector(closestSame.getPosition(), this.getPosition());
             } else {
@@ -357,6 +360,11 @@ public class Critter4 extends PApplet {
                 distanceVectorDifferent = getDistanceVector(closestDifferent.getPosition(), this.getPosition());
             } else {
                 distanceVectorDifferent = new float[]{0f, 0f};
+            }
+            if (closestFood != null) {
+                distanceVectorFood = getDistanceVector(closestFood.getPosition(), this.getPosition());
+            } else {
+                distanceVectorFood = new float[]{0f, 0f};
             }
             float[] velocity = getVelocity();
 
@@ -386,7 +394,8 @@ public class Critter4 extends PApplet {
             }
             input[12] = activation(this.getAge(), 1f, 1E-5f, 3f);
             input[13] = this.getEnergy();
-
+            input[14] = distanceVectorFood[0];
+            input[15] = distanceVectorFood[1];
             net.setInputs(input);
         }
 
