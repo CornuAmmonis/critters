@@ -333,6 +333,12 @@ public class Critter4 extends PApplet {
                 float costOfLiving = this.getEnergy() * costOfLivingEnergyScale;
                 globalProperties.addEnergy(costOfLiving);
                 this.setEnergy(this.getEnergy() - costOfLiving);
+
+                if (this.getEnergy() <= 0) {
+                    globalProperties.addEnergy(-1f * this.getEnergy());
+                    this.setAlive(false);
+                    this.setEnergy(0f);
+                }
             }
         }
 
@@ -560,10 +566,13 @@ public class Critter4 extends PApplet {
         public void makeFood() {
             float foodSize = 1f;
 
-            while(globalEnergy > foodSize) {
+            /*while(globalEnergy > foodSize) {
                 foods.add(new Food(foodSize, getRandomPositionVector()));
                 globalEnergy -= foodSize;
-            }
+            }*/
+
+            foods.add(new Food(globalEnergy, getRandomPositionVector()));
+            globalEnergy = 0f;
         };
 
         public float[] getRandomPositionVector() {
