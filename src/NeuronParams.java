@@ -32,7 +32,7 @@ public class NeuronParams {
     }
 
     public float compare(NeuronParams target) {
-        float avgPctDiff = 0f;
+        float avgPctDiff;
         float dA = percentDifference(this.a, target.a);
         float dB = percentDifference(this.b, target.b);
         float dC = percentDifference(this.c, target.c);
