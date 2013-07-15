@@ -57,7 +57,7 @@ public class Critter4 extends PApplet {
     }
 
     public void draw() {
-        background(0, 0, 100);
+        background(0, 0, 0);
         newSp = new ArrayList(sp);
         float totalEnergy = 0f;
         float deadEnergy = 0f;
@@ -534,7 +534,7 @@ public class Critter4 extends PApplet {
             if (getAlive()) {
                 stroke((51 * this.getType()) % 100, 100, 100);
             } else {
-                stroke(0, 0, 0);
+                stroke(0, 0, 100);
             }
             strokeWeight(2);
 
@@ -643,7 +643,7 @@ public class Critter4 extends PApplet {
         }
 
         public void drawFood(float[] position) {
-            stroke(0, 0, 0);
+            stroke(0, 0, 100);
             strokeWeight(2);
             ellipse(position[0], position[1], 4f, 4f);
         }
