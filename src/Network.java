@@ -35,16 +35,16 @@ class Network {
 
     public Network() {
         for (int i = 0; i < inputNs; i++) {
-            Neuron n = createRandomNeuron(inputNs + outputNs);
+            Neuron n = createRandomNeuron(inputNs + hiddenNs);
 
             List<Connection> connections = new ArrayList<Connection>();
             for (int j = 0; j < inputNs; j++) {
                 connections.add(new ExternalConnection(j, this, scale / inputNs));
             }
 
-            //testing feedback loop
-            for (int j = inputNs + hiddenNs; j < inputNs + hiddenNs + outputNs; j++) {
-                connections.add(new InternalConnection(j, this, scale / outputNs));
+            //feedback loop to hidden layer
+            for (int j = inputNs; j < inputNs + hiddenNs; j++) {
+                connections.add(new InternalConnection(j, this, scale / hiddenNs));
             }
             n.setInputs(connections);
 

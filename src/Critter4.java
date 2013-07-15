@@ -64,6 +64,7 @@ public void draw() {
             System.exit(-1);
         }
         totalEnergy += spinner.getEnergy();
+        totalEnergy += spinner.getUsedEnergy();
         spinner.draw();
     }
     System.out.println(totalEnergy  + ", " + newSp.size() + ", " + agents + ", " + maxId);
@@ -196,7 +197,7 @@ class Spinner {
     }
 
     public boolean getAlive() {
-        return !alive || getAge() < 10000;
+        return alive && getAge() < 100000;
     }
 
     public void setAlive(boolean alive) {
@@ -277,10 +278,10 @@ class Spinner {
           float[] rawVelocityOutput = new float[2];
           rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
           rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-          boolean reproduce = net.getFired()[4];
           velocity = averager(rawVelocityOutput, velocity, 0.4f);
 
           boolean mated = false;
+          boolean reproduce = net.getFired()[4];
           if (reproduce && closestSame != null && interactDistance(distanceSame, getRadius() + closestSame.getRadius())) {
               if (agents < maxAgents) {
                 if (mate(this, closestSame)) {
@@ -306,19 +307,16 @@ class Spinner {
               }
               float tE2 = closestDifferent.getEnergy();
               float sE2 = this.getEnergy();
-              /*if ((tE2 + sE2) - (tE + sE) > 0.001f) {
-                  throw new Exception("energy violation");
-              }*/
           }
 
-          if (agents < maxAgents) {
-              float energyScale = 0.001f;
+
+              float energyScale = 0.0001f;
               float velocityMagnitude = (float)Math.sqrt(Math.pow(velocity[0], 2f) + Math.pow(velocity[1], 2f));
               selfEnergy = this.getEnergy();
               float energyLoss = energyScale * (selfEnergy * (float)Math.pow(velocityMagnitude, 2f));
 
 
-              if (selfEnergy < energyLoss) {
+              if (energyLoss > selfEnergy) {
                   this.setEnergy(0f);
                   float ratio = selfEnergy / energyLoss;
                   velocity[0] = ratio * (velocity[0] / velocityMagnitude);
@@ -334,7 +332,7 @@ class Spinner {
 
               usedEnergy += energyLoss;
 
-              if (usedEnergy  > childEnergy) {
+              if (agents < maxAgents && usedEnergy  > childEnergy) {
                   usedEnergy -= childEnergy;
                   int newId = maxId;
                   int type = this.getType();
@@ -343,7 +341,7 @@ class Spinner {
                   newSp.add(newSpinner);
                   agents++;
               }
-          }
+
       }
   }
   
