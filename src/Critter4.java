@@ -70,11 +70,13 @@ public class Critter4 extends PApplet {
             totalEnergy += spinner.getEnergy();
             spinner.draw();
         }
-        totalEnergy += globalProperties.getGlobalEnergy();
-        System.out.println(totalEnergy  + ", " + newSp.size() + ", " + agents + ", " + maxId);
         sp = newSp;
         globalProperties.makeFood();
-        globalProperties.draw();
+
+        totalEnergy += globalProperties.getGlobalEnergy();
+        float foodEnergy = globalProperties.draw();
+        totalEnergy += foodEnergy;
+        System.out.println(totalEnergy  + ", " + foodEnergy + ", " + agents + ", " + maxId);
     }
 
     public float getTotalEnergy() {
@@ -304,10 +306,10 @@ public class Critter4 extends PApplet {
 
                 eat();
 
-                float energyScale = 0.0005f;
+                float velocityEnergyScale = 0.0001f;
                 float velocityMagnitude = (float)Math.sqrt(Math.pow(velocity[0], 2f) + Math.pow(velocity[1], 2f));
                 float selfEnergy = this.getEnergy();
-                float energyLoss = energyScale * (selfEnergy * (float)Math.pow(velocityMagnitude, 2f));
+                float energyLoss = velocityEnergyScale * (selfEnergy * (float)Math.pow(velocityMagnitude, 2f));
 
 
                 if (energyLoss > selfEnergy) {
@@ -327,7 +329,8 @@ public class Critter4 extends PApplet {
                 globalProperties.addEnergy(energyLoss);
 
                 //Cost of living
-                float costOfLiving = this.getEnergy() * energyScale;
+                float costOfLivingEnergyScale = 0.01f;
+                float costOfLiving = this.getEnergy() * costOfLivingEnergyScale;
                 globalProperties.addEnergy(costOfLiving);
                 this.setEnergy(this.getEnergy() - costOfLiving);
             }
@@ -544,10 +547,14 @@ public class Critter4 extends PApplet {
             foods = new LinkedList<Food>();
         }
 
-        public void draw() {
+        //returns total energy for convenience
+        public float draw() {
+            float totalEnergy = 0f;
             for (Food food : foods) {
                 drawFood(food.getPosition());
+                totalEnergy += food.getEnergy();
             }
+            return totalEnergy;
         }
 
         public void makeFood() {
