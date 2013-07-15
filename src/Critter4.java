@@ -205,7 +205,7 @@ public class Critter4 extends PApplet {
         }
 
         public boolean getAlive() {
-            return alive && getAge() < 100000;
+            return alive; // && getAge() < 100000;
         }
 
         public void setAlive(boolean alive) {
@@ -316,8 +316,6 @@ public class Critter4 extends PApplet {
                     }
                 }
 
-                eat();
-
                 float velocityEnergyScale = 0.0001f;
                 float velocityMagnitude = (float)Math.sqrt(Math.pow(velocity[0], 2f) + Math.pow(velocity[1], 2f));
                 float selfEnergy = this.getEnergy();
@@ -351,6 +349,18 @@ public class Critter4 extends PApplet {
                     this.setAlive(false);
                     this.setEnergy(0f);
                 }
+
+                if (this.getEnergy() <= 0.2f) {
+                    if (newSp.contains(this)) {
+                        globalProperties.addEnergy(this.getEnergy());
+                        this.setAlive(false);
+                        this.setEnergy(0f);
+                        newSp.remove(this);
+                        agents--;
+                    }
+                }
+
+                while(eat());
             }
         }
 
@@ -423,9 +433,9 @@ public class Critter4 extends PApplet {
             float minRemainder = 0.05f;
 
             //prevent massive amount of inbreeding
-            if (self.getAge() < 1000 || target.getAge() < 1000) {
-                return false;
-            }
+            //if (self.getAge() < 1000 || target.getAge() < 1000) {
+            //    return false;
+            //}
 
             final float childEnergy = 1f;
             final float minEnergy = 0.1f;
@@ -527,7 +537,7 @@ public class Critter4 extends PApplet {
         }
 
         public float getRadius() {
-            return sqrt(10f*energy)*2f;
+            return sqrt(10f*energy)*4f + 2;
         }
 
         public void draw() {
@@ -538,7 +548,7 @@ public class Critter4 extends PApplet {
             }
             strokeWeight(2);
 
-            ellipse(position[0], position[1], getRadius() * 2f + 4, getRadius() * 2f + 4);
+            ellipse(position[0], position[1], getRadius(), getRadius());
         }
     }
 
@@ -591,7 +601,9 @@ public class Critter4 extends PApplet {
                 globalEnergy -= foodSize;
             }*/
 
-            foods.add(new Food(globalEnergy, getRandomPositionVector()));
+            if (globalEnergy > 0f) {
+                foods.add(new Food(globalEnergy, getRandomPositionVector()));
+            }
             globalEnergy = 0f;
         };
 
