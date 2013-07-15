@@ -60,6 +60,7 @@ public class Critter4 extends PApplet {
         background(0, 0, 100);
         newSp = new ArrayList(sp);
         float totalEnergy = 0f;
+        float deadEnergy = 0f;
         for (Spinner spinner : sp) {
             try{
                 spinner.update();
@@ -69,14 +70,16 @@ public class Critter4 extends PApplet {
             }
             totalEnergy += spinner.getEnergy();
             spinner.draw();
+            deadEnergy += spinner.getAlive() ? 0f : spinner.getEnergy();
         }
         sp = newSp;
-        globalProperties.makeFood();
 
         totalEnergy += globalProperties.getGlobalEnergy();
         float foodEnergy = globalProperties.draw();
         totalEnergy += foodEnergy;
-        System.out.println(totalEnergy  + ", " + foodEnergy + ", " + agents + ", " + maxId);
+        System.out.println("total " + totalEnergy + " dead " + deadEnergy + " food " + foodEnergy + " global " + globalProperties.getGlobalEnergy() + " agents " + agents + " maxid " + maxId + " maxtype " + maxType);
+
+        globalProperties.makeFood();
     }
 
     public float getTotalEnergy() {
@@ -256,10 +259,18 @@ public class Critter4 extends PApplet {
                 setNetInput();
                 net.update();
 
+                Spinner closest = getClosest(this);
                 Spinner closestSame = getClosestOfSameType(this, true);
                 Spinner closestDifferent = getClosestOfSameType(this, false);
+                float distance;
                 float distanceSame;
                 float distanceDifferent;
+
+                if (closest == null) {
+                    distance = 0f;
+                } else {
+                    distance = getDistance(closest.getPosition(), this.getPosition());
+                }
 
                 if (closestSame == null) {
                     distanceSame = 0f;
@@ -277,7 +288,7 @@ public class Critter4 extends PApplet {
                 float[] rawVelocityOutput = new float[2];
                 rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
                 rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-                velocity = averager(rawVelocityOutput, velocity, 0.4f);
+                velocity = averager(rawVelocityOutput, velocity, 1f);
 
                 boolean mated = false;
                 boolean reproduce = net.getFired()[4];
@@ -299,7 +310,7 @@ public class Critter4 extends PApplet {
                     }
                 }
                 boolean attack = net.getFired()[5];
-                if (attack && closestDifferent != null && interactDistance(distanceDifferent, getRadius() + closestDifferent.getRadius())) {
+                if (attack && closest != null && interactDistance(distance, getRadius() + closest.getRadius())) {
                     if (attack(this, closestDifferent)) {
                         agents--;
                     }
@@ -527,7 +538,7 @@ public class Critter4 extends PApplet {
             }
             strokeWeight(2);
 
-            ellipse(position[0], position[1], getRadius() * 2f, getRadius() * 2f);
+            ellipse(position[0], position[1], getRadius() * 2f + 4, getRadius() * 2f + 4);
         }
     }
 
@@ -634,7 +645,7 @@ public class Critter4 extends PApplet {
         public void drawFood(float[] position) {
             stroke(0, 0, 0);
             strokeWeight(2);
-            ellipse(position[0], position[1], 2f, 2f);
+            ellipse(position[0], position[1], 4f, 4f);
         }
 
     }
