@@ -3,9 +3,9 @@ import java.util.List;
 
 class Network {
     float[] inputs;
-    int inputNs = 16;
-    int hiddenNs = 10;
-    int outputNs = 6;
+    public static int inputNs = 17;
+    public static int hiddenNs = 10;
+    public static int outputNs = 6;
 
     final float scale = 10f;
 
@@ -105,6 +105,7 @@ class Network {
         neuronParams.b = 0.2f;
         neuronParams.c = -65 + 15 * pow(rand, 2f);
         neuronParams.d = 8 - 6 * rand;
+        neuronParams.k = 5f;
         return neuronParams;
     }
 
@@ -115,6 +116,7 @@ class Network {
         neuronParams.b = 0.25f - 0.05f * rand;
         neuronParams.c = -65;
         neuronParams.d = 2;
+        neuronParams.k = 5f;
         return neuronParams;
     }
 

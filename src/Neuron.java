@@ -11,7 +11,7 @@ class Neuron {
     List<Connection> inputs;
     float[] weights;
 
-    float u, v, a, b, c, d;
+    float u, v, a, b, c, d, k;
 
     boolean fired = false;
     public Neuron(NeuronParams params){
@@ -19,6 +19,7 @@ class Neuron {
         b = params.b;
         c = params.c;
         d = params.d;
+        k = params.k;
         v = -65f;
         u = b * v;
         weights = params.weights;
@@ -46,6 +47,10 @@ class Neuron {
     }
 
     public void update() {
+        if (Float.isNaN(u) || Float.isNaN(u)) {
+            v = -65f;
+            u = b * v;
+        }
         if (fired) {
             v = c;
             u = u + d;
@@ -57,9 +62,12 @@ class Neuron {
             v += 0.5f*((0.04f * v + 5.0f) * v + 140.0f - u + getI());
             u += 0.5f*a * (b * v - u);
 
-            if(v >= fThresh){
+            if(v >= fThresh || Float.isNaN(v)){
                 v = fThresh;
                 fired = true;
+            }
+            if (Float.isNaN(u)) {
+                u = b * v;
             }
         }
     }
@@ -69,7 +77,11 @@ class Neuron {
         for (int j = 0; j <  inputs.size(); j++) {
             input += activation(inputs.get(j).getValue() * weights[j]);
         }
-        return input;
+        if (Float.isNaN(input)) {
+            return 0f;
+        } else {
+            return k * input;
+        }
     }
 
     public float activation(float x) {

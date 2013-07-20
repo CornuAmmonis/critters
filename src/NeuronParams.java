@@ -1,8 +1,8 @@
-import java.util.List;
 import java.util.Random;
 
 public class NeuronParams {
-    public float a, b, c, d;
+    //k is input scaling factor
+    public float a, b, c, d, k;
     public float[] weights;
     public NeuronParams() {}
 
@@ -11,6 +11,7 @@ public class NeuronParams {
         b = mutate(b, mutation);
         c = mutate(c, mutation);
         d = mutate(d, mutation);
+        k = mutate(k, mutation);
         for (int i = 0; i < weights.length; i++) {
             weights[i] = mutate(weights[i], mutation);
         }
@@ -27,6 +28,7 @@ public class NeuronParams {
         neuronParams.b = this.b;
         neuronParams.c = this.c;
         neuronParams.d = this.d;
+        neuronParams.k = this.k;
         neuronParams.weights = this.weights.clone();
         return neuronParams;
     }
@@ -37,11 +39,12 @@ public class NeuronParams {
         float dB = percentDifference(this.b, target.b);
         float dC = percentDifference(this.c, target.c);
         float dD = percentDifference(this.d, target.d);
-        avgPctDiff = dA + dB + dC + dD;
+        float dK = percentDifference(this.k, target.k);
+        avgPctDiff = dA + dB + dC + dD + dK;
         for (int i = 0; i < weights.length; i++) {
             avgPctDiff += percentDifference(this.weights[i], target.weights[i]);
         }
-        return avgPctDiff / (4 + weights.length);
+        return avgPctDiff / (5 + weights.length);
     }
 
     private float percentDifference(float x, float y) {
