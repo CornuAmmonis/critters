@@ -1,14 +1,17 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
 class Neuron {
 
-    final float scale = 1f;
+    final int queueLength = 8;
 
+    final float scale = 1f;
     final float fThresh = 30.0f;
 
     NeuronParams neuronParams;
     List<Connection> inputs;
+    List<Queue> inputHistory;
+    Queue<Boolean> selfHistory;
     float[] weights;
 
     float u, v, a, b, c, d, k;
@@ -24,6 +27,7 @@ class Neuron {
         u = b * v;
         weights = params.weights;
         neuronParams = params;
+        selfHistory = new ArrayBlockingQueue<Boolean>(queueLength);
     }
 
     public NeuronParams getNeuronParams() {
@@ -36,6 +40,10 @@ class Neuron {
 
     public void setInputs(List<Connection> inputs) {
         this.inputs = inputs;
+        inputHistory = new ArrayList<Queue>();
+        for (Connection input : inputs) {
+            inputHistory.add(new ArrayBlockingQueue(queueLength));
+        }
     }
 
     public float[] getWeights() {
@@ -47,10 +55,6 @@ class Neuron {
     }
 
     public void update() {
-        if (Float.isNaN(u) || Float.isNaN(u)) {
-            v = -65f;
-            u = b * v;
-        }
         if (fired) {
             v = c;
             u = u + d;
@@ -62,14 +66,19 @@ class Neuron {
             v += 0.5f*((0.04f * v + 5.0f) * v + 140.0f - u + getI());
             u += 0.5f*a * (b * v - u);
 
-            if(v >= fThresh || Float.isNaN(v)){
+            if(v >= fThresh){
                 v = fThresh;
                 fired = true;
             }
-            if (Float.isNaN(u)) {
-                u = b * v;
-            }
         }
+        if (Float.isNaN(v) || Float.isNaN(u)) {
+            v = c;
+            u = b * v;
+            fired = false;
+        }
+        updateHistory(getFired(), selfHistory);
+        updateInputHistory();
+        updateSTDP();
     }
 
     public float getI() {
@@ -81,6 +90,73 @@ class Neuron {
             return 0f;
         } else {
             return k * input;
+        }
+    }
+
+    public void updateSTDP() {
+        //must be the same as queueLength
+        float[] stdpArray = new float[]{-0.125f, -0.25f, -0.5f, -1f, 1f, 0.5f, 0.25f, 0.125f};
+        float selfStdp = 0f;
+        float learningRate = 0.001f;
+        int i = 0;
+        for (Boolean fired : selfHistory) {
+            selfStdp += fired ? stdpArray[i] : 0f;
+            i++;
+        }
+        if (selfStdp == 0f) {
+            return;
+        }
+        int inputPosition = 0;
+        for (Queue<Boolean> q : inputHistory) {
+            weights[inputPosition] = weights[inputPosition] < 0f ? 0f : weights[inputPosition];
+            weights[inputPosition] = weights[inputPosition] > 1f ? 1f : weights[inputPosition];
+            int queuePosition = 0;
+            float inputStdp = 0f;
+            for (Boolean fired : q) {
+                inputStdp += fired ? stdpArray[queuePosition] : 0f;
+                queuePosition++;
+            }
+            if (inputStdp == 0f) {
+                continue;
+            }
+            float totalStdp = selfStdp - inputStdp;
+            if (totalStdp > 0.5f || totalStdp < -0.5f) {
+                float delta = learningRate * (totalStdp);
+                weights[inputPosition] += delta;
+            }
+            weights[inputPosition] = weights[inputPosition] < 0f ? 0f : weights[inputPosition];
+            weights[inputPosition] = weights[inputPosition] > 1f ? 1f : weights[inputPosition];
+            inputPosition++;
+        }
+
+        /*
+            TODO: neuron giving scaling value for STDP, neuron triggering weight changes
+         */
+    }
+
+    public void updateInputHistory() {
+        for (int i = 0; i < inputs.size(); i++) {
+            updateHistory(inputs.get(i).getFired(),inputHistory.get(i));
+        }
+    }
+
+    public void updateHistory(Boolean f, Queue q) {
+        if (q.size() >= queueLength) {
+            q.poll();
+        }
+        q.add(f);
+    }
+
+    public void updateWeights() {
+        final float delta = 0.001f;
+        for (int j = 0; j <  inputs.size(); j++) {
+            if (inputs.get(j).getFired() && this.getFired()) {
+                weights[j] += delta;
+                weights[j] = weights[j] > 1f ? 1f : weights[j];
+            } else if (inputs.get(j).getFired() && !this.getFired()) {
+                weights[j] -= delta;
+                weights[j] = weights[j] < 0f ? 0f : weights[j];
+            }
         }
     }
 

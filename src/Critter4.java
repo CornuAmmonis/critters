@@ -12,7 +12,7 @@ public class Critter4 extends PApplet {
 
     int agents = 50;
     int initialAgents = 50;
-    int maxAgents = 800;
+    int maxAgents = 300;
     int maxId = 0;
     int maxType = 1;
     float childEnergy = 1f;
@@ -20,7 +20,7 @@ public class Critter4 extends PApplet {
     float vScale = 0.1f; //velocity scale
 
     float initialE = 10f;
-    float maxEnergy = 500f;
+    float maxEnergy = 200f;
     final float minEnergy = 0.05f;
 
     GlobalProperties globalProperties;
@@ -446,11 +446,6 @@ public class Critter4 extends PApplet {
             float threshold = 0.1f;
             float minRemainder = 0.05f;
 
-            //prevent massive amount of inbreeding
-            //if (self.getAge() < 1000 || target.getAge() < 1000) {
-            //    return false;
-            //}
-
             final float childEnergy = 1f;
             float minE = Math.min(self.getEnergy(), target.getEnergy());
             float maxE = Math.max(self.getEnergy(), target.getEnergy());
@@ -555,7 +550,7 @@ public class Critter4 extends PApplet {
 
         public void draw() {
             if (getAlive()) {
-                stroke((51 * this.getType()) % 100, 100, 100);
+                stroke((77 * this.getType()) % 100,  (this.getNetwork().getFired()[0] ? 10 : 50) + (this.getNetwork().getFired()[1] ? 10 : 50), 100);
             } else {
                 stroke(0, 0, 100);
             }

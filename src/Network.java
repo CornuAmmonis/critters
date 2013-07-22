@@ -146,6 +146,10 @@ class Network {
             return scale * net.getInput(inputN);
         }
 
+        public boolean getFired() {
+            return false;
+        }
+
         public void setNetwork(Network net) {
             this.net = net;
         }
@@ -167,6 +171,10 @@ class Network {
 
         public float getValue() {
             return scale *  (net.getNeuron(neuronN).getFired() ? 1f : 0f);
+        }
+
+        public boolean getFired() {
+            return net.getNeuron(neuronN).getFired();
         }
 
         public void setNetwork(Network net) {
