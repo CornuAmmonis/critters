@@ -10,8 +10,8 @@ class Neuron {
 
     NeuronParams neuronParams;
     List<Connection> inputs;
-    List<Queue> inputHistory;
-    Queue<Boolean> selfHistory;
+    List<Queue<FiringState>> inputHistory;
+    Queue<FiringState> selfHistory;
     float[] weights;
 
     float u, v, a, b, c, d, k;
@@ -27,7 +27,7 @@ class Neuron {
         u = b * v;
         weights = params.weights;
         neuronParams = params;
-        selfHistory = new ArrayBlockingQueue<Boolean>(queueLength);
+        selfHistory = new ArrayBlockingQueue<FiringState>(queueLength);
     }
 
     public NeuronParams getNeuronParams() {
@@ -40,9 +40,9 @@ class Neuron {
 
     public void setInputs(List<Connection> inputs) {
         this.inputs = inputs;
-        inputHistory = new ArrayList<Queue>();
+        inputHistory = new ArrayList<Queue<FiringState>>();
         for (Connection input : inputs) {
-            inputHistory.add(new ArrayBlockingQueue(queueLength));
+            inputHistory.add(new ArrayBlockingQueue<FiringState>(queueLength));
         }
     }
 
@@ -84,7 +84,13 @@ class Neuron {
     public float getI() {
         float input = 0f;
         for (int j = 0; j <  inputs.size(); j++) {
-            input += activation(inputs.get(j).getValue() * weights[j]);
+            FiringState fired = inputs.get(j).getFired();
+            //fired == null indicates an External Connection which do not fire)
+            if (fired == FiringState.DISABLED) {
+                input += activation(inputs.get(j).getValue() * weights[j]);
+            } else {
+                input += inputs.get(j).getFired() == FiringState.FIRED ? weights[j] : 0f;
+            }
         }
         if (Float.isNaN(input)) {
             return 0f;
@@ -94,29 +100,39 @@ class Neuron {
     }
 
     public void updateSTDP() {
-        //must be the same as queueLength
+        //size of stdpArray must be equal to queueLength (TODO: parameterize, make evolvable)
         float[] stdpArray = new float[]{-0.125f, -0.25f, -0.5f, -1f, 1f, 0.5f, 0.25f, 0.125f};
         float selfStdp = 0f;
         float learningRate = 0.001f;
         int i = 0;
-        for (Boolean fired : selfHistory) {
-            selfStdp += fired ? stdpArray[i] : 0f;
+        for (FiringState fired : selfHistory) {
+            if (fired == FiringState.DISABLED) {
+                throw new RuntimeException("Neuron firing state should never be FiringState.DISABLED");
+            }
+            selfStdp += fired == FiringState.FIRED ? stdpArray[i] : 0f;
             i++;
         }
-        if (selfStdp == 0f) {
-            return;
-        }
         int inputPosition = 0;
-        for (Queue<Boolean> q : inputHistory) {
-            weights[inputPosition] = weights[inputPosition] < 0f ? 0f : weights[inputPosition];
+        for (Queue<FiringState> q : inputHistory) {
+            weights[inputPosition] = weights[inputPosition] < -1f ? -1f : weights[inputPosition];
             weights[inputPosition] = weights[inputPosition] > 1f ? 1f : weights[inputPosition];
+            if (selfStdp == 0f) {
+                inputPosition++;
+                continue;
+            }
             int queuePosition = 0;
             float inputStdp = 0f;
-            for (Boolean fired : q) {
-                inputStdp += fired ? stdpArray[queuePosition] : 0f;
-                queuePosition++;
+            boolean isExternalConnection = false;
+            for (FiringState fired : q) {
+                if (fired == FiringState.DISABLED) {
+                    isExternalConnection = true;
+                } else {
+                    inputStdp += fired == FiringState.FIRED ? stdpArray[queuePosition] : 0f;
+                    queuePosition++;
+                }
             }
-            if (inputStdp == 0f) {
+            if (inputStdp == 0f || isExternalConnection) {
+                inputPosition++;
                 continue;
             }
             float totalStdp = selfStdp - inputStdp;
@@ -124,7 +140,7 @@ class Neuron {
                 float delta = learningRate * (totalStdp);
                 weights[inputPosition] += delta;
             }
-            weights[inputPosition] = weights[inputPosition] < 0f ? 0f : weights[inputPosition];
+            weights[inputPosition] = weights[inputPosition] < -1f ? -1f : weights[inputPosition];
             weights[inputPosition] = weights[inputPosition] > 1f ? 1f : weights[inputPosition];
             inputPosition++;
         }
@@ -140,32 +156,19 @@ class Neuron {
         }
     }
 
-    public void updateHistory(Boolean f, Queue q) {
+    public void updateHistory(FiringState f, Queue q) {
         if (q.size() >= queueLength) {
             q.poll();
         }
         q.add(f);
     }
 
-    public void updateWeights() {
-        final float delta = 0.001f;
-        for (int j = 0; j <  inputs.size(); j++) {
-            if (inputs.get(j).getFired() && this.getFired()) {
-                weights[j] += delta;
-                weights[j] = weights[j] > 1f ? 1f : weights[j];
-            } else if (inputs.get(j).getFired() && !this.getFired()) {
-                weights[j] -= delta;
-                weights[j] = weights[j] < 0f ? 0f : weights[j];
-            }
-        }
-    }
-
     public float activation(float x) {
         return scale * ((float) Math.tanh(x) + 1f);
     }
 
-    public boolean getFired() {
-        return fired;
+    public FiringState getFired() {
+        return fired ? FiringState.FIRED : FiringState.NOTFIRED;
     }
 
     public float getV() {

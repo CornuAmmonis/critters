@@ -105,7 +105,7 @@ class Network {
         neuronParams.b = 0.2f;
         neuronParams.c = -65 + 15 * pow(rand, 2f);
         neuronParams.d = 8 - 6 * rand;
-        neuronParams.k = 5f;
+        neuronParams.k = 30f;
         return neuronParams;
     }
 
@@ -116,7 +116,7 @@ class Network {
         neuronParams.b = 0.25f - 0.05f * rand;
         neuronParams.c = -65;
         neuronParams.d = 2;
-        neuronParams.k = 5f;
+        neuronParams.k = 30f;
         return neuronParams;
     }
 
@@ -146,8 +146,8 @@ class Network {
             return scale * net.getInput(inputN);
         }
 
-        public boolean getFired() {
-            return false;
+        public FiringState getFired() {
+            return FiringState.DISABLED;
         }
 
         public void setNetwork(Network net) {
@@ -170,10 +170,10 @@ class Network {
         }
 
         public float getValue() {
-            return scale *  (net.getNeuron(neuronN).getFired() ? 1f : 0f);
+            return scale *  (net.getNeuron(neuronN).getFired() == FiringState.FIRED ? 1f : 0f);
         }
 
-        public boolean getFired() {
+        public FiringState getFired() {
             return net.getNeuron(neuronN).getFired();
         }
 
@@ -195,7 +195,7 @@ class Network {
     public float[] getOutput() {
         float[] output = new float[outputNs];
         for (int i = 0; i < outputNs; i++) {
-            output[i] = getOutputNeuron(i).getFired() ? 1f : 0f;
+            output[i] = getOutputNeuron(i).getFired() == FiringState.FIRED ? 1f : 0f;
         }
         return output;
     }
@@ -203,7 +203,7 @@ class Network {
     public boolean[] getFired() {
         boolean[] output = new boolean[outputNs];
         for (int i = 0; i < outputNs; i++) {
-            output[i] = getOutputNeuron(i).getFired();
+            output[i] = getOutputNeuron(i).getFired() == FiringState.FIRED;
         }
         return output;
     }
@@ -243,4 +243,5 @@ class Network {
         }
         return avgPctDiff / this.getNeurons().size();
     }
+
 }
