@@ -15,15 +15,22 @@ public class Critter4 extends PApplet {
     int maxAgents = 300;
     int maxId = 0;
     int maxType = 1;
-    float childEnergy = 1f;
-
-    float vScale = 0.1f; //velocity scale
-
-    float initialE = 10f;
-    float maxEnergy = 200f;
-    final float minEnergy = 0.05f;
 
     GlobalProperties globalProperties;
+
+    final float initialE = 10f; //initial energy of an agent
+    final float maxEnergy = 200f; //food will only be added to the system below this energy level
+    final float minEnergy = 0.05f; //minimum energy of an agent before dying
+
+    final float attackEnergyScale = 0.01f; //fraction of energy lost by attacking
+    final float costOfLivingEnergyScale = 0.005f; //fraction of energy lost while standing still
+
+    final float vScale = 0.3f; //velocity scale
+    final float tScale = 0.1f; //theta scale
+
+    final float threshold = 0.1f; //threshold for speciation
+    final float minRemainder = 0.05f; //minimum remaining energy after mating
+    final float childEnergy = 1f; //energy required to make a child
 
     public void setup() {
         size(1200, 800, OPENGL);
@@ -144,7 +151,6 @@ public class Critter4 extends PApplet {
         unitDistanceVector[1] = distanceVector[1] / distance;
         return unitDistanceVector;
     }
-
 
     class Spinner {
         int id;
@@ -276,12 +282,6 @@ public class Critter4 extends PApplet {
                 }
 
                 float[] netOutput = net.getVOutput();
-                /*float[] rawVelocityOutput = new float[2];
-                rawVelocityOutput[0] = vScale * (netOutput[0] - netOutput[1]);
-                rawVelocityOutput[1] = vScale * (netOutput[2] - netOutput[3]);
-                velocity = averager(rawVelocityOutput, velocity, 1f);*/
-                float tScale = 0.1f;
-                vScale = 0.3f;
                 float angle = tScale * (netOutput[0] - netOutput[1]);
                 float[] prevVelocity = this.getVelocity();
                 float prevAngle = (float)Math.atan2(prevVelocity[1], prevVelocity[0]);
@@ -312,7 +312,7 @@ public class Critter4 extends PApplet {
                     }
                 }
                 boolean attack = net.getFired()[5];
-                if (attack && closest != null && closest.getType() != this.getType() && interactDistance(distance, getRadius() + closest.getRadius())) {
+                if (attack && closest != null && interactDistance(distance, getRadius() + closest.getRadius())) {
                     if (attack(this, closestDifferent)) {
                         agents--;
                     }
@@ -341,7 +341,6 @@ public class Critter4 extends PApplet {
                 globalProperties.addEnergy(energyLoss);
 
                 //Cost of living
-                float costOfLivingEnergyScale = 0.005f;
                 float costOfLiving = this.getEnergy() * costOfLivingEnergyScale;
                 globalProperties.addEnergy(costOfLiving);
                 this.setEnergy(this.getEnergy() - costOfLiving);
@@ -443,10 +442,7 @@ public class Critter4 extends PApplet {
             if (!target.getAlive()) {
                 return false;
             }
-            float threshold = 0.1f;
-            float minRemainder = 0.05f;
 
-            final float childEnergy = 1f;
             float minE = Math.min(self.getEnergy(), target.getEnergy());
             float maxE = Math.max(self.getEnergy(), target.getEnergy());
 
@@ -500,34 +496,20 @@ public class Critter4 extends PApplet {
                 return false;    //crappy way of handling concurrency issues
             }
 
-            float rdm = random(1f);
-            //float ratio = self.getEnergy() / (target.getEnergy() + self.getEnergy());
             float targetEnergy = target.getEnergy();
             float selfEnergy = self.getEnergy();
             float energyWager = Math.min(self.getEnergy(), target.getEnergy());
-            boolean allSelfEnergy = targetEnergy >= selfEnergy;
             boolean allTargetEnergy = selfEnergy >= targetEnergy;
-            //if (rdm < 0.5 || !target.getAlive()) {
-                self.setEnergy(selfEnergy + energyWager);
-                target.setEnergy(targetEnergy - energyWager);
-                if (allTargetEnergy) {
-                    newSp.remove(target);
-                    self.setEnergy(self.getEnergy());
-                    return true;
-                } else {
-                    return false;
-                }
-            /*} else {
-                target.setEnergy(targetEnergy + energyWager);
-                self.setEnergy(selfEnergy - energyWager);
-                if (allSelfEnergy) {
-                    newSp.remove(self);
-                    target.setEnergy(target.getEnergy());
-                    return true;
-                } else {
-                    return false;
-                }
-            } */
+            self.setEnergy(selfEnergy + energyWager);
+            target.setEnergy(targetEnergy - energyWager);
+            self.setEnergy(self.getEnergy() * (1f - attackEnergyScale));
+            globalProperties.addEnergy(attackEnergyScale * self.getEnergy());
+            if (allTargetEnergy) {
+                newSp.remove(target);
+                return true;
+            } else {
+                return false;
+            }
         }
 
         public boolean eat() {
